@@ -126,12 +126,15 @@
 
 <audio id="sound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
 
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
 <script>
 
     const API = "https://script.google.com/macros/s/AKfycbyN679clzeACEZWULyHo93KXIhA1yoj8ywL4TdbBo0IgYudD1DCUrL90RKQ5uytA2T3/exec";
 
     let prevOrder = [];
     let oldPositions = {};
+    let prevState = [];
 
     async function load() {
         const res = await fetch(API + "?t=" + Date.now());
@@ -139,10 +142,33 @@
 
         data.sort((a,b)=>b.points-a.points);
 
+        const changed = hasChanged(data);
+
         renderTop3(data.slice(0,3));
         renderList(data.slice(3));
 
-        animateFLIP(data);
+        if (changed) {
+            animateTop3();
+            animateList();
+            animatePoints();
+
+            prevState = data;
+        }
+    }
+
+    function hasChanged(newData) {
+        if (prevState.length !== newData.length) return true;
+
+        for (let i = 0; i < newData.length; i++) {
+            if (
+                prevState[i].name !== newData[i].name ||
+                prevState[i].points !== newData[i].points
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /* 🏆 TOP 3 */
@@ -196,42 +222,31 @@
         });
     }
 
-    /* 🎬 FLIP ANIMATION */
-    function animateFLIP(data) {
-        const old = oldPositions;
-
-        const elements = document.querySelectorAll(".row");
-
-        // 1. FIRST (запам'ятовуємо старі позиції ДО зміни)
-        const first = {};
-        elements.forEach(el => {
-            first[el.id] = el.getBoundingClientRect();
+    function animateList() {
+        gsap.from(".row", {
+            opacity: 0,
+            y: 20,
+            duration: 0.4,
+            stagger: 0.03,
+            ease: "power2.out"
         });
+    }
 
-        // 2. рендер вже відбувся (data вже оновлений)
-
-        requestAnimationFrame(() => {
-
-            const newEls = document.querySelectorAll(".row");
-
-            newEls.forEach(el => {
-                const last = el.getBoundingClientRect();
-                const prev = first[el.id];
-
-                if (!prev) return;
-
-                const dx = prev.left - last.left;
-                const dy = prev.top - last.top;
-
-                el.style.transform = `translate(${dx}px, ${dy}px)`;
-
-                requestAnimationFrame(() => {
-                    el.style.transition = "transform 0.6s ease";
-                    el.style.transform = "none";
-                });
-            });
-
+    function animateTop3() {
+        gsap.from(".card", {
+            scale: 0.8,
+            opacity: 0,
+            duration: 0.6,
+            stagger: 0.1,
+            ease: "back.out(1.7)"
         });
+    }
+
+    function animatePoints() {
+        gsap.fromTo(".points",
+            { scale: 1.2, color: "#facc15" },
+            { scale: 1, color: "#ffffff", duration: 0.4 }
+        );
     }
 
     setInterval(load, 2000);
