@@ -2,114 +2,101 @@
 <html lang="uk">
 <head>
 	<meta charset="UTF-8">
-	<title>Табло змагань</title>
+	<title>Live Табло</title>
 	
 	<style>
-		body {
-			background: #0f172a;
-			color: white;
-			font-family: Arial;
-			margin: 0;
-		}
-		
-		h1 {
-			text-align: center;
-			padding: 20px;
-		}
-		
-		.table {
-			width: 90%;
-			margin: auto;
-		}
+		body { background:#0f172a; color:white; font-family:Arial; }
 		
 		.row {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			padding: 12px;
-			margin: 6px 0;
-			background: #1e293b;
-			border-radius: 12px;
-			transition: all 0.5s ease;
+			display:flex;
+			justify-content:space-between;
+			padding:10px;
+			margin:5px;
+			background:#1e293b;
+			border-radius:10px;
+			position:relative;
+			transition: transform 0.6s ease;
 		}
 		
-		.row.top1 { background: gold; color: black; }
-		.row.top2 { background: silver; color: black; }
-		.row.top3 { background: #cd7f32; }
-		
 		.team {
-			display: flex;
-			align-items: center;
-			gap: 10px;
+			display:flex;
+			align-items:center;
+			gap:10px;
 		}
 		
 		.team img {
-			width: 40px;
-			height: 40px;
-			border-radius: 50%;
+			width:40px;
+			height:40px;
+			border-radius:50%;
 		}
-		
-		.points {
-			font-size: 20px;
-			font-weight: bold;
-		}
-	
 	</style>
 </head>
 
 <body>
 
-<h1>🏆 Турнір</h1>
-<div id="table" class="table"></div>
+<h1 style="text-align:center;">🏆 LIVE</h1>
+<div id="list"></div>
+
+<audio id="sound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
 
 <script>
 
-    const URL = "https://docs.google.com/spreadsheets/d/1-AFf6OMFFUBuhdfTKyR8nKqV9wjsLtt40C_XCKbBkUQ/pub?output=csv";
+    const API = "https://script.google.com/macros/s/AKfycbyN679clzeACEZWULyHo93KXIhA1yoj8ywL4TdbBo0IgYudD1DCUrL90RKQ5uytA2T3/exec";
 
-    async function loadData() {
-        const res = await fetch(URL);
-        const text = await res.text();
+    let prev = [];
 
-        const rows = text.split("\n").slice(1);
+    async function load() {
+        const res = await fetch(API + "?t=" + Date.now());
+        const data = await res.json();
 
-        let teams = rows.map(r => {
-            const c = r.split(",");
-            return {
-                name: c[0],
-                logo: c[1],
-                points: parseInt(c[20]) || 0
-            };
-        });
+        animate(data);
+    }
 
-        teams.sort((a,b) => b.points - a.points);
+    function animate(data) {
+        const container = document.getElementById("list");
 
-        const table = document.getElementById("table");
-        table.innerHTML = "";
+        const oldMap = {};
+        prev.forEach((t,i) => oldMap[t.name] = i);
 
-        teams.forEach((t, i) => {
-            const div = document.createElement("div");
-            div.className = "row";
+        data.forEach((t,i) => {
+            let el = document.getElementById(t.name);
 
-            if(i===0) div.classList.add("top1");
-            if(i===1) div.classList.add("top2");
-            if(i===2) div.classList.add("top3");
+            if(!el) {
+                el = document.createElement("div");
+                el.className = "row";
+                el.id = t.name;
+                container.appendChild(el);
+            }
 
-            div.innerHTML = `
+            el.innerHTML = `
       <div class="team">
         <span>${i+1}</span>
         <img src="${t.logo}">
         <span>${t.name}</span>
       </div>
-      <div class="points">${t.points}</div>
+      <div>${t.points}</div>
     `;
 
-            table.appendChild(div);
+            // анімація переміщення
+            if(oldMap[t.name] !== undefined) {
+                const diff = oldMap[t.name] - i;
+                el.style.transform = `translateY(${diff * 60}px)`;
+                setTimeout(() => {
+                    el.style.transform = "translateY(0)";
+                }, 50);
+            }
         });
+
+        // звук якщо змінився порядок
+        if(JSON.stringify(prev.map(t=>t.name)) !== JSON.stringify(data.map(t=>t.name))) {
+            document.getElementById("sound").play();
+        }
+
+        prev = data;
     }
 
-    // автооновлення
-    setInterval(loadData, 5000);
-    loadData();
+    setInterval(load, 2000);
+    load();
 
 </script>
 
