@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+	<meta charset="UTF-8">
+	<title>Табло змагань</title>
+	
+	<style>
+		body {
+			background: #0f172a;
+			color: white;
+			font-family: Arial;
+			margin: 0;
+		}
+		
+		h1 {
+			text-align: center;
+			padding: 20px;
+		}
+		
+		.table {
+			width: 90%;
+			margin: auto;
+		}
+		
+		.row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 12px;
+			margin: 6px 0;
+			background: #1e293b;
+			border-radius: 12px;
+			transition: all 0.5s ease;
+		}
+		
+		.row.top1 { background: gold; color: black; }
+		.row.top2 { background: silver; color: black; }
+		.row.top3 { background: #cd7f32; }
+		
+		.team {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+		
+		.team img {
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+		}
+		
+		.points {
+			font-size: 20px;
+			font-weight: bold;
+		}
+	
+	</style>
+</head>
+
+<body>
+
+<h1>🏆 Турнір</h1>
+<div id="table" class="table"></div>
+
+<script>
+
+    const URL = "https://docs.google.com/spreadsheets/d/1-AFf6OMFFUBuhdfTKyR8nKqV9wjsLtt40C_XCKbBkUQ/pub?output=csv";
+
+    async function loadData() {
+        const res = await fetch(URL);
+        const text = await res.text();
+
+        const rows = text.split("\n").slice(1);
+
+        let teams = rows.map(r => {
+            const c = r.split(",");
+            return {
+                name: c[0],
+                logo: c[1],
+                points: parseInt(c[20]) || 0
+            };
+        });
+
+        teams.sort((a,b) => b.points - a.points);
+
+        const table = document.getElementById("table");
+        table.innerHTML = "";
+
+        teams.forEach((t, i) => {
+            const div = document.createElement("div");
+            div.className = "row";
+
+            if(i===0) div.classList.add("top1");
+            if(i===1) div.classList.add("top2");
+            if(i===2) div.classList.add("top3");
+
+            div.innerHTML = `
+      <div class="team">
+        <span>${i+1}</span>
+        <img src="${t.logo}">
+        <span>${t.name}</span>
+      </div>
+      <div class="points">${t.points}</div>
+    `;
+
+            table.appendChild(div);
+        });
+    }
+
+    // автооновлення
+    setInterval(loadData, 5000);
+    loadData();
+
+</script>
+
+</body>
+</html>
